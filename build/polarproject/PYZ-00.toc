@@ -1,6 +1,5 @@
 ('D:\\CAGDProject\\build\\polarproject\\PYZ-00.pyz',
- [('DraggablePoint', 'D:\\CAGDProject\\DraggablePoint.py', 'PYMODULE'),
-  ('IPython',
+ [('IPython',
    'C:\\Users\\dobot\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\IPython\\__init__.py',
    'PYMODULE'),
   ('IPython.core',

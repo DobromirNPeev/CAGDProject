@@ -1,6 +1,5 @@
 import matplotlib.pyplot as plt
 import numpy as np
-import tkinter as tk
 from matplotlib.widgets import Slider,Button
 import copy
 
@@ -241,7 +240,10 @@ def toggle_visibility(event):
     plt.draw()
 
 def set_preset1(event):
-    global points
+    global points,drawnPoints
+    for point in drawnPoints:
+        point.point.remove()
+    drawnPoints.clear()
     points=copy.deepcopy(preset['preset1'])
     for point in points:
         drawnPoints.append(DraggablePoint(ax,point[0],point[1]))
@@ -275,7 +277,10 @@ def set_preset1(event):
     fig.canvas.draw_idle()
 
 def set_preset2(event):
-    global points
+    global points,drawnPoints
+    for point in drawnPoints:
+        point.point.remove()
+    drawnPoints.clear()
     points=copy.deepcopy(preset['preset2'])
     for point in points:
         drawnPoints.append(DraggablePoint(ax,point[0],point[1]))
@@ -309,7 +314,10 @@ def set_preset2(event):
     fig.canvas.draw_idle()
 
 def set_preset3(event):
-    global points
+    global points,drawnPoints
+    for point in drawnPoints:
+        point.point.remove()
+    drawnPoints.clear()
     points=copy.deepcopy(preset['preset3'])
     for point in points:
         drawnPoints.append(DraggablePoint(ax,point[0],point[1]))
@@ -343,7 +351,10 @@ def set_preset3(event):
     fig.canvas.draw_idle()
 
 def set_preset4(event):
-    global points
+    global points,drawnPoints
+    for point in drawnPoints:
+        point.point.remove()
+    drawnPoints.clear()
     points=copy.deepcopy(preset['preset4'])
     for point in points:
         drawnPoints.append(DraggablePoint(ax,point[0],point[1]))
