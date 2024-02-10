@@ -33,6 +33,8 @@ class DraggablePoint:
             self.ax.figure.canvas.draw()
 
     def on_release(self, event):
+        if not event.xdata or not event.ydata:
+            return
         global points
         new_x = event.xdata + self.press[0]
         new_y = event.ydata + self.press[1]
@@ -43,36 +45,34 @@ class DraggablePoint:
                 break
         self.x=new_x
         self.y=new_y
-        control_points_updated = np.array(points)
-
-        displaced_control_points = displace_control_points(control_points_updated, t)
-
-        updated_curve_points = bezier_curve(control_points_updated, t_values)
-        updated_polar_points = bezier_curve(displaced_control_points, t_values)
-
-        curve.set_xdata(updated_curve_points[:, 0])
-        curve.set_ydata(updated_curve_points[:, 1])
-
-        polar.set_xdata(updated_polar_points[:, 0])
-        polar.set_ydata(updated_polar_points[:, 1])
-
-        #control_pts.set_xdata(control_points_updated[:, 0])
-        #control_pts.set_ydata(control_points_updated[:, 1])
-            
-        control_polygon.set_xdata(control_points_updated[:, 0])
-        control_polygon.set_ydata(control_points_updated[:, 1])
-
-        control_polar_polygon.set_xdata(displaced_control_points[:, 0])
-        control_polar_polygon.set_ydata(displaced_control_points[:, 1])
-
-        polar_pts.set_xdata(displaced_control_points[:, 0])
-        polar_pts.set_ydata(displaced_control_points[:, 1])
-        fig.canvas.draw_idle() 
+        redraw()
         if self.dragging:
             self.dragging = False
             self.press = None
 
+def redraw():
+    control_points_updated = np.array(points)
 
+    displaced_control_points = displace_control_points(control_points_updated, t)
+    updated_curve_points = bezier_curve(control_points_updated, t_values)
+    updated_polar_points = bezier_curve(displaced_control_points, t_values)
+
+    curve.set_xdata(updated_curve_points[:, 0])
+    curve.set_ydata(updated_curve_points[:, 1])
+
+    polar.set_xdata(updated_polar_points[:, 0])
+    polar.set_ydata(updated_polar_points[:, 1])
+            
+    control_polygon.set_xdata(control_points_updated[:, 0])
+    control_polygon.set_ydata(control_points_updated[:, 1])
+
+    control_polar_polygon.set_xdata(displaced_control_points[:, 0])
+    control_polar_polygon.set_ydata(displaced_control_points[:, 1])
+
+    polar_pts.set_xdata(displaced_control_points[:, 0])
+    polar_pts.set_ydata(displaced_control_points[:, 1])
+    fig.canvas.draw_idle() 
+    
 def de_casteljau(control_points, t):
     n = len(control_points) - 1
     
@@ -100,6 +100,75 @@ def displace_control_points(original_points, t):
         displaced_points.append(displaced_point)
     return np.array(displaced_points)
 
+def update(val):
+    global t
+    t = val
+    redraw()
+
+def add_point(event):
+    global points,drawnPoints,ax
+    global add_point_enabled
+    if event.button == 1 and add_point_enabled:
+        x, y = event.xdata, event.ydata
+        new_point = [x, y]
+        (xm,ym),(xM,yM) =  button_add_point.label.clipbox.get_points()
+        if x is None or y is None:
+            return
+        if xm<event.x<xM and ym<event.y<yM:
+            toggle_add_point()
+            return
+        points.append(new_point)
+        drawnPoints.append(DraggablePoint(ax,x,y))
+        redraw()
+
+def remove_last_point(event):
+    if len(points) >2:
+        points.pop() 
+        point=drawnPoints.pop()
+        point.point.remove()
+        redraw()
+
+def toggle_visibility(event):
+    current_visibility_polar = polar.get_visible()
+    current_visibility_polar_pts = polar_pts.get_visible() 
+    current_visibility_control_polar_polygon=control_polar_polygon.get_visible()
+    polar.set_visible(not current_visibility_polar)
+    polar_pts.set_visible(not current_visibility_polar_pts)
+    control_polar_polygon.set_visible(not current_visibility_control_polar_polygon)
+    plt.draw()
+
+def set_preset(name):
+    global points,drawnPoints
+    for point in drawnPoints:
+        point.point.remove()
+    drawnPoints.clear()
+    points=copy.deepcopy(preset[name])
+    for point in points:
+        drawnPoints.append(DraggablePoint(ax,point[0],point[1]))
+
+def set_preset1(event):
+    set_preset('preset1')
+    redraw()
+
+def set_preset2(event):
+    set_preset('preset2')
+    redraw()
+
+def set_preset3(event):
+    set_preset('preset3')
+    redraw()
+
+def set_preset4(event):
+    set_preset('preset4')
+    redraw()
+
+def toggle_add_point(event):
+    global add_point_enabled
+    add_point_enabled = not add_point_enabled
+    if add_point_enabled:
+        button_add_point.label.set_text("Add point (enabled)")
+    else:
+        button_add_point.label.set_text("Add point (disabled)")
 
 preset4=[[0, 0], [0, 5], [5, 5],[5,0],[1.5,3]]
 preset3=[[0, 0], [0, 5], [5, 5],[5,0]]
@@ -127,279 +196,18 @@ drawnPoints=[]
 curve,=plt.plot(original_curve_points[:, 0], original_curve_points[:, 1], 'r-', label='Original Bézier Curve')
 for point in points:
     drawnPoints.append(DraggablePoint(ax,point[0],point[1]))
-#control_pts, = ax.plot(original_control_points[:, 0], original_control_points[:, 1], 'ro', label='Control Points')
 control_polygon,=plt.plot(original_control_points[:, 0], original_control_points[:, 1], 'r', label='Control Polygon')
 polar,=plt.plot(modified_curve_points[:, 0], modified_curve_points[:, 1], 'g-', label=f'Modified Bézier Curve (t={t})')
 polar_pts,= ax.plot(displaced_control_points[:, 0], displaced_control_points[:, 1], 'bo', label='Control Polar Points')
 control_polar_polygon,=plt.plot(displaced_control_points[:, 0], displaced_control_points[:, 1], 'b', label='Control Polar Polygon')
 
-
-def update(val):
-    global t
-    t = val
-    control_points_updated = np.array(points)
-    displaced_control_points = displace_control_points(control_points_updated, t)
-    modified_curve_points = bezier_curve(displaced_control_points, t_values)
-
-    polar.set_xdata(modified_curve_points[:, 0])
-    polar.set_ydata(modified_curve_points[:, 1])
-
-    polar_pts.set_xdata(displaced_control_points[:, 0])
-    polar_pts.set_ydata(displaced_control_points[:, 1])
-
-    control_polar_polygon.set_xdata(displaced_control_points[:, 0])
-    control_polar_polygon.set_ydata(displaced_control_points[:, 1])
-
-    ax.relim() 
-    ax.autoscale_view()  
-    fig.canvas.draw_idle() 
-
-def add_random_point(event):
-    global points,drawnPoints,ax
-    global add_point_enabled
-    if event.button == 1 and add_point_enabled:  # Left mouse click
-        x, y = event.xdata, event.ydata
-        new_point = [x, y]
-        (xm,ym),(xM,yM) =  button_add_point.label.clipbox.get_points()
-        if x is None or y is None:
-            return
-        if xm<event.x<xM and ym<event.y<yM:
-            toggle_add_point()
-            return
-        points.append(new_point)
-        drawnPoints.append(DraggablePoint(ax,x,y))
-        control_points_updated = np.array(points)
-
-        displaced_control_points = displace_control_points(control_points_updated, t)
-
-        updated_curve_points = bezier_curve(control_points_updated, t_values)
-        updated_polar_points = bezier_curve(displaced_control_points, t_values)
-
-        curve.set_xdata(updated_curve_points[:, 0])
-        curve.set_ydata(updated_curve_points[:, 1])
-
-        polar.set_xdata(updated_polar_points[:, 0])
-        polar.set_ydata(updated_polar_points[:, 1])
-
-        #control_pts.set_xdata(control_points_updated[:, 0])
-        #control_pts.set_ydata(control_points_updated[:, 1])
-            
-        control_polygon.set_xdata(control_points_updated[:, 0])
-        control_polygon.set_ydata(control_points_updated[:, 1])
-
-        control_polar_polygon.set_xdata(displaced_control_points[:, 0])
-        control_polar_polygon.set_ydata(displaced_control_points[:, 1])
-
-        polar_pts.set_xdata(displaced_control_points[:, 0])
-        polar_pts.set_ydata(displaced_control_points[:, 1])
-        ax.relim() 
-        ax.autoscale_view() 
-        fig.canvas.draw_idle() 
-
-def remove_last_point(event):
-    if len(points) >2:
-        points.pop() 
-        point=drawnPoints.pop()
-        point.point.remove()
-        control_points_updated = np.array(points)
-        
-        displaced_control_points = displace_control_points(control_points_updated, t)
-
-        updated_curve_points = bezier_curve(control_points_updated, t_values)
-        updated_polar_points = bezier_curve(displaced_control_points, t_values)
-
-        curve.set_xdata(updated_curve_points[:, 0])
-        curve.set_ydata(updated_curve_points[:, 1])
-
-        polar.set_xdata(updated_polar_points[:, 0])
-        polar.set_ydata(updated_polar_points[:, 1])
-
-        #control_pts.set_xdata(control_points_updated[:, 0])
-        #control_pts.set_ydata(control_points_updated[:, 1])
-    
-        control_polygon.set_xdata(control_points_updated[:, 0])
-        control_polygon.set_ydata(control_points_updated[:, 1])
-
-        control_polar_polygon.set_xdata(displaced_control_points[:, 0])
-        control_polar_polygon.set_ydata(displaced_control_points[:, 1])
-
-        polar_pts.set_xdata(displaced_control_points[:, 0])
-        polar_pts.set_ydata(displaced_control_points[:, 1])
-
-        ax.relim()
-        ax.autoscale_view() 
-        fig.canvas.draw_idle() 
-
-def toggle_visibility(event):
-    current_visibility_polar = polar.get_visible()
-    current_visibility_polar_pts = polar_pts.get_visible() 
-    current_visibility_control_polar_polygon=control_polar_polygon.get_visible()
-    polar.set_visible(not current_visibility_polar)
-    polar_pts.set_visible(not current_visibility_polar_pts)
-    control_polar_polygon.set_visible(not current_visibility_control_polar_polygon)
-    plt.draw()
-
-def set_preset1(event):
-    global points,drawnPoints
-    for point in drawnPoints:
-        point.point.remove()
-    drawnPoints.clear()
-    points=copy.deepcopy(preset['preset1'])
-    for point in points:
-        drawnPoints.append(DraggablePoint(ax,point[0],point[1]))
-    control_points_updated = np.array(points)
-    
-    displaced_control_points = displace_control_points(control_points_updated, t)
-
-    updated_curve_points = bezier_curve(control_points_updated, t_values)
-    updated_polar_points = bezier_curve(displaced_control_points, t_values)
-
-    curve.set_xdata(updated_curve_points[:, 0])
-    curve.set_ydata(updated_curve_points[:, 1])
-
-    polar.set_xdata(updated_polar_points[:, 0])
-    polar.set_ydata(updated_polar_points[:, 1])
-
-    #control_pts.set_xdata(control_points_updated[:, 0])
-    #control_pts.set_ydata(control_points_updated[:, 1])
-    
-    control_polygon.set_xdata(control_points_updated[:, 0])
-    control_polygon.set_ydata(control_points_updated[:, 1])
-
-    control_polar_polygon.set_xdata(displaced_control_points[:, 0])
-    control_polar_polygon.set_ydata(displaced_control_points[:, 1])
-
-    polar_pts.set_xdata(displaced_control_points[:, 0])
-    polar_pts.set_ydata(displaced_control_points[:, 1])
-
-    ax.relim()
-    ax.autoscale_view()
-    fig.canvas.draw_idle()
-
-def set_preset2(event):
-    global points,drawnPoints
-    for point in drawnPoints:
-        point.point.remove()
-    drawnPoints.clear()
-    points=copy.deepcopy(preset['preset2'])
-    for point in points:
-        drawnPoints.append(DraggablePoint(ax,point[0],point[1]))
-    control_points_updated = np.array(points)
-    
-    displaced_control_points = displace_control_points(control_points_updated, t)
-
-    updated_curve_points = bezier_curve(control_points_updated, t_values)
-    updated_polar_points = bezier_curve(displaced_control_points, t_values)
-
-    curve.set_xdata(updated_curve_points[:, 0])
-    curve.set_ydata(updated_curve_points[:, 1])
-
-    polar.set_xdata(updated_polar_points[:, 0])
-    polar.set_ydata(updated_polar_points[:, 1])
-
-    #control_pts.set_xdata(control_points_updated[:, 0])
-    #control_pts.set_ydata(control_points_updated[:, 1])
-    
-    control_polygon.set_xdata(control_points_updated[:, 0])
-    control_polygon.set_ydata(control_points_updated[:, 1])
-
-    control_polar_polygon.set_xdata(displaced_control_points[:, 0])
-    control_polar_polygon.set_ydata(displaced_control_points[:, 1])
-
-    polar_pts.set_xdata(displaced_control_points[:, 0])
-    polar_pts.set_ydata(displaced_control_points[:, 1])
-
-    ax.relim()
-    ax.autoscale_view()
-    fig.canvas.draw_idle()
-
-def set_preset3(event):
-    global points,drawnPoints
-    for point in drawnPoints:
-        point.point.remove()
-    drawnPoints.clear()
-    points=copy.deepcopy(preset['preset3'])
-    for point in points:
-        drawnPoints.append(DraggablePoint(ax,point[0],point[1]))
-    control_points_updated = np.array(points)
-    
-    displaced_control_points = displace_control_points(control_points_updated, t)
-
-    updated_curve_points = bezier_curve(control_points_updated, t_values)
-    updated_polar_points = bezier_curve(displaced_control_points, t_values)
-
-    curve.set_xdata(updated_curve_points[:, 0])
-    curve.set_ydata(updated_curve_points[:, 1])
-
-    polar.set_xdata(updated_polar_points[:, 0])
-    polar.set_ydata(updated_polar_points[:, 1])
-
-    #control_pts.set_xdata(control_points_updated[:, 0])
-    #control_pts.set_ydata(control_points_updated[:, 1])
-    
-    control_polygon.set_xdata(control_points_updated[:, 0])
-    control_polygon.set_ydata(control_points_updated[:, 1])
-
-    control_polar_polygon.set_xdata(displaced_control_points[:, 0])
-    control_polar_polygon.set_ydata(displaced_control_points[:, 1])
-
-    polar_pts.set_xdata(displaced_control_points[:, 0])
-    polar_pts.set_ydata(displaced_control_points[:, 1])
-
-    ax.relim()
-    ax.autoscale_view()
-    fig.canvas.draw_idle()
-
-def set_preset4(event):
-    global points,drawnPoints
-    for point in drawnPoints:
-        point.point.remove()
-    drawnPoints.clear()
-    points=copy.deepcopy(preset['preset4'])
-    for point in points:
-        drawnPoints.append(DraggablePoint(ax,point[0],point[1]))
-    control_points_updated = np.array(points)
-    
-    displaced_control_points = displace_control_points(control_points_updated, t)
-
-    updated_curve_points = bezier_curve(control_points_updated, t_values)
-    updated_polar_points = bezier_curve(displaced_control_points, t_values)
-
-    curve.set_xdata(updated_curve_points[:, 0])
-    curve.set_ydata(updated_curve_points[:, 1])
-
-    polar.set_xdata(updated_polar_points[:, 0])
-    polar.set_ydata(updated_polar_points[:, 1])
-
-   # control_pts.set_xdata(control_points_updated[:, 0])
-    #control_pts.set_ydata(control_points_updated[:, 1])
-    
-    control_polygon.set_xdata(control_points_updated[:, 0])
-    control_polygon.set_ydata(control_points_updated[:, 1])
-
-    control_polar_polygon.set_xdata(displaced_control_points[:, 0])
-    control_polar_polygon.set_ydata(displaced_control_points[:, 1])
-
-    polar_pts.set_xdata(displaced_control_points[:, 0])
-    polar_pts.set_ydata(displaced_control_points[:, 1])
-
-    ax.relim()
-    ax.autoscale_view()
-    fig.canvas.draw_idle()
-
-def toggle_add_point(event):
-    global add_point_enabled
-    add_point_enabled = not add_point_enabled
-    if add_point_enabled:
-        button_add_point.label.set_text("Add point (enabled)")
-    else:
-        button_add_point.label.set_text("Add point (disabled)")
-
 axred = plt.axes([0.25, 0.05 ,0.65, 0.03])
 slider = Slider(axred, 't:', 0.0, 1.0)
+slider.on_changed(update)
 
 ax_button = plt.axes([0.11, 0.025, 0.1, 0.04])
 button_add_point = Button(ax_button, 'Add Point (disabled)', color='lightgray', hovercolor='lightblue')
+button_add_point.on_clicked(toggle_add_point)
 
 ax_button = plt.axes([0.11, 0.125, 0.1, 0.04])
 button_toggle = Button(ax_button, 'Hide/Show Polar', color='lightgray', hovercolor='lightblue')
@@ -426,10 +234,7 @@ ax_button_preset4 = plt.axes([0.005, 0.175, 0.1, 0.04])
 button_preset4= Button(ax_button_preset4, 'Preset 4', color='lightgray', hovercolor='lightblue')
 button_preset4.on_clicked(set_preset4)
 
-slider.on_changed(update)
-button_add_point.on_clicked(toggle_add_point)
-
 plt.legend()
 plt.grid(False)
-plt.gcf().canvas.mpl_connect('button_press_event', add_random_point)
+plt.gcf().canvas.mpl_connect('button_press_event', add_point)
 plt.show()
