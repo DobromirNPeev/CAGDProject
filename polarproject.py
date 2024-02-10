@@ -51,6 +51,7 @@ class DraggablePoint:
             self.press = None
 
 def redraw():
+    global points,t
     control_points_updated = np.array(points)
 
     displaced_control_points = displace_control_points(control_points_updated, t)
@@ -115,8 +116,6 @@ def add_point(event):
         x, y = event.xdata, event.ydata
         new_point = [x, y]
         (xm,ym),(xM,yM) =  button_add_point.label.clipbox.get_points()
-        if x is None or y is None:
-            return
         if xm<event.x<xM and ym<event.y<yM:
             toggle_add_point()
             return
@@ -189,7 +188,6 @@ displaced_control_points = displace_control_points(original_control_points, t)
 t_values = np.linspace(0, 1, 100)
 original_curve_points = bezier_curve(original_control_points, t_values)
 modified_curve_points = bezier_curve(displaced_control_points, t_values)
-
 
 fig,ax=plt.subplots()
 plt.subplots_adjust(bottom=0.25)

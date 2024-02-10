@@ -227,7 +227,6 @@ missing module named numpy.amin - imported by numpy (top-level), numpy.ma.core (
 missing module named numpy.amax - imported by numpy (top-level), numpy.ma.core (top-level)
 missing module named gi - imported by matplotlib.cbook (delayed, conditional)
 missing module named importlib_resources - imported by matplotlib.style.core (conditional)
-missing module named certifi - imported by matplotlib (delayed, optional)
 missing module named setuptools_scm - imported by matplotlib (delayed, conditional)
 missing module named yaml - imported by numpy.__config__ (delayed)
 missing module named numpy._distributor_init_local - imported by numpy (optional), numpy._distributor_init (optional)
