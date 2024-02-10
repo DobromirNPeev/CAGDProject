@@ -106,7 +106,10 @@ def update(val):
     redraw()
 
 def add_point(event):
-    global points,drawnPoints,ax
+    global ax
+    if not ax.contains(event)[0]:
+        return
+    global points,drawnPoints
     global add_point_enabled
     if event.button == 1 and add_point_enabled:
         x, y = event.xdata, event.ydata
